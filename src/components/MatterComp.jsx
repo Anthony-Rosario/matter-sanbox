@@ -91,16 +91,16 @@ const MatterComp = () => {
         const bodies = [];
         event.source.pairs.list.forEach(({ bodyA, bodyB }) => {
           console.log(bodyA.speed, bodyB.speed);
-          if (bodyA.synth && !bodies.includes(bodyA) && bodyA.speed > 3) {
-            bodyA.synth.volume.value = Math.min(bodyA.speed - 20, -8);
+          if (bodyA.synth && !bodies.includes(bodyA) && bodyA.speed > 1) {
+            bodyA.synth.volume.value = Math.log(bodyA.speed) - 10;
             bodyA.synth.triggerAttackRelease(
               notes[Math.floor(Math.random() * 14)],
               0.1
             );
             bodies.push(bodyA.id);
           }
-          if (bodyB.synth && !bodies.includes(bodyB) && bodyB.speed > 3) {
-            bodyB.synth.volume.value = Math.min(bodyA.speed - 20, -8);
+          if(bodyB.synth && !bodies.includes(bodyB) && bodyB.speed > 1) {
+            bodyB.synth.volume.value = Math.log(bodyB.speed) - 10;
             bodyB.synth.triggerAttackRelease(
               notes[Math.floor(Math.random() * 14)],
               '0.1'
