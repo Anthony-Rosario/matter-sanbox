@@ -10,7 +10,7 @@ const MatterComp = () => {
   const [pause, setPause] = useState(false);
   const [pastGrav, setPastGrav] = useState({
     x: 0.5,
-    y: 0.5
+    // y: 0.5
   });
   const canvasX = 1000;
   const canvasY = 1000;
@@ -39,6 +39,8 @@ const MatterComp = () => {
   const Bodies = Matter.Bodies;
   const Mouse = Matter.Mouse;
   const MouseConstraint = Matter.MouseConstraint;
+  const colorA = '#f55a3c';
+  const colorB = '#f5d259';
 
   const handleClear = () => {
     Composite.clear(engineRef.current.world);
@@ -78,13 +80,13 @@ const MatterComp = () => {
         // or require and use the plugin directly (Node.js, Webpack etc.)
         Matter.use(require('matter-wrap'));
       }
-    } catch (e) {
+    } catch(e) {
       // could not require the plugin or install needed
     }
     Tone.start();
     engineRef.current = Engine.create({});
     engineRef.current.gravity.y = 0.5;
-    engineRef.current.gravity.x = 0.5;
+    // engineRef.current.gravity.x = 0.5;
     const render = Render.create({
       element: sceneRef.current,
       engine: engineRef.current,
@@ -95,12 +97,24 @@ const MatterComp = () => {
       },
     });
 
-    // World.add(engine.world, [
-    //   // walls
-    //   Bodies.rectangle(300, 600, 600, 50, { isStatic: true }),
-    //   Bodies.rectangle(0, 300, 50, 600, { isStatic: true }),
-    //   Bodies.rectangle(600, 300, 50, 600, { isStatic: true }),
-    // ]);
+    const collider = Bodies.rectangle(250, 250, 300, 50, { 
+      isStatic: true, 
+      isSensor: true,
+      render: {
+        strokeStyle: colorA,
+        fillStyle: 'transparent',
+        lineWidth: 1
+      } 
+    });
+
+    Composite.add(engineRef.current.world, [
+      // walls
+      Bodies.rectangle(200, 0, 600, 50, { isStatic: true }),
+      Bodies.rectangle(200, 600, 600, 50, { isStatic: true }),
+      Bodies.rectangle(500, 250, 50, 600, { isStatic: true }),
+      Bodies.rectangle(0, 300, 50, 600, { isStatic: true }),
+      collider
+    ]);
 
     // add mouse control
     const mouse = Mouse.create(render.canvas);
@@ -130,20 +144,27 @@ const MatterComp = () => {
         const thisBody = Bodies.circle(xPos, yPos, 30, {
           restitution: 0.7,
           frictionAir: 0.1,
-          plugin: {
-            wrap: {
-              min: {
-                x: xPos,
-                y: yPos,
-              },
-              max: {
-                x: xPos + loopSize,
-                y: yPos + loopSize,
-              },
-            },
-          },
+          density: 1,
+          render: {
+            strokeStyle: colorA,
+            fillStyle: 'transparent',
+            lineWidth: 1
+          }
+          // plugin: {
+          //   wrap: {
+          //     min: {
+          //       x: xPos,
+          //       y: yPos,
+          //     },
+          //     max: {
+          //       x: canvasX,
+          //       y: canvasY,
+          //     },
+          //   },
+          // },
         });
         thisBody.synth = new Tone.Synth().connect(gainNode);
+        thisBody.bubble = true;
         thisBody.synth.silent = true;
         Composite.add(engineRef.current.world, thisBody);
         console.log(engineRef.current);
@@ -152,6 +173,11 @@ const MatterComp = () => {
         const thisBody = Bodies.rectangle(xPos, yPos, 30, 30, {
           restitution: 0.7,
           frictionAir: 0.05,
+          render: {
+            strokeStyle: '#247589',
+            fillStyle: 'transparent',
+            lineWidth: 1
+          },
           plugin: {
             wrap: {
               min: {
@@ -181,23 +207,26 @@ const MatterComp = () => {
     Matter.Events.on(engineRef.current, 'collisionEnd', (event) => {
       if (event) {
         const bodies = [];
-        event.source.pairs.list.forEach(({ bodyA, bodyB }) => {
+        event.source.pairs.list.forEach(({ bodyA, bodyB, collider }) => {
           if (
             bodyA.synth &&
             !bodies.includes(bodyA.id) &&
             bodyA.speed > 1.5 &&
             bodyA.synth.silent === true
           ) {
+            bodyA.render.strokeStyle = colorB;
             bodyA.synth.volume.value = Math.log(bodyA.speed) - 10;
             bodyA.synth.triggerAttackRelease(
               notes[Math.floor(Math.random() * 14)],
               '16n'
             );
             bodyA.synth.silent = false;
+            // if (bodyA.bubble) Matter.Composite.remove(engineRef.current.world, bodyA);
             bodies.push(bodyA.id);
             setTimeout(() => {
               bodyA.synth.silent = true;
             }, 50);
+            console.log(bodies);
           }
           if (
             bodyB.synth &&
@@ -211,10 +240,22 @@ const MatterComp = () => {
               '16n'
             );
             bodyB.synth.silent = false;
+            // if (bodyB.bubble) Matter.Composite.remove(engineRef.current.world, bodyB);
             bodies.push(bodyB.id);
             setTimeout(() => {
               bodyB.synth.silent = true;
             }, 50);
+          }
+          if (bodyA === collider) {
+            bodyB.render.strokeStyle = colorB;
+          } else if (bodyB === collider) {
+            bodyA.render.strokeStyle = colorB;
+          }
+          
+          if (bodyA === collider) {
+            bodyB.render.strokeStyle = colorA;
+          } else if (bodyB === collider) {
+            bodyA.render.strokeStyle = colorA;
           }
         });
       }
